@@ -15,27 +15,30 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-	<div id="app">
-	        <div id="map"></div>
-	        <div class="loading">
-	            <!-- Add your loading indicator here if needed -->
-	        </div>
-	        <div class="loading-overlay"></div>
-	        <div id="tab-bar">
-	            <button class="active">
-	                <i class="fas fa-map"></i>
-	                <span>Map</span>
-	            </button>
-	            <button>
-	                <i class="fas fa-compass"></i>
-	                <span>Nav</span>
-	            </button>
-	            <button>
-	                <i class="fas fa-list"></i>
-	                <span>List</span>
-	            </button>
-	        </div>
-	    </div>
+    <div id="app">
+        <div id="map"></div>
+        <div id="nav-view" class="view hidden">
+            <!-- Nav view will be populated by NavView class -->
+        </div>
+        <div class="loading">
+            <!-- Add your loading indicator here if needed -->
+        </div>
+        <div class="loading-overlay"></div>
+		<div id="tab-bar">
+		    <button class="tab-button active" data-view="map">
+		        <i class="fas fa-map"></i>
+		        <span>Map</span>
+		    </button>
+		    <button class="tab-button" data-view="nav">
+		        <i class="fas fa-compass"></i>
+		        <span>Nav</span>
+		    </button>
+		    <button class="tab-button" data-view="list">
+		        <i class="fas fa-list"></i>
+		        <span>List</span>
+		    </button>
+		</div>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>

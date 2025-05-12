@@ -9,11 +9,11 @@ export const CONFIG = {
     },
     
     ROUTE: {
-        ID: 50608713,
-        API_KEY: '81c8a1eb',
+        ID: '50608713',  // RideWithGPS route ID for Swamp Rabbit Trail
+        API_KEY: '81c8a1eb',         
         AUTH_TOKEN: '5cc5e4b222670322422e8a3fb7324379',
         get URL() {
-            return `https://ridewithgps.com/api/v1/routes/${this.ID}.json?version=2`;
+            return `https://ridewithgps.com/routes/${this.ID}.json?version=2&apikey=${this.API_KEY}&auth_token=${this.AUTH_TOKEN}`;
         }
     },
     

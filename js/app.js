@@ -1,70 +1,56 @@
 import { CONFIG } from './config.js';
 import { appState } from './data/state.js';
+import { mapManager, initializeMap } from './map.js';
+import { initializePOIs } from './data/poiManager.js';
+import { initializeRoute } from './data/routeData.js';
 
 class TrailNavigator {
     constructor() {
-        // Initialize state listeners
+        this.initialized = false;
         appState.subscribe(this.handleStateChange.bind(this));
+        window.addEventListener('resize', this.handleResize.bind(this));
     }
-    
-    async initialize() {
+
+    async initialize() {    // <-- Here's the async initialize() function
         try {
-            // Initialize loading state
-            appState.update({
-                loading: {
-                    map: true,
-                    route: true,
-                    poi: true
-                }
-            });
-            
-            // Basic initialization for testing
-            const map = L.map('map').setView(CONFIG.MAP.DEFAULT_COORDS, CONFIG.MAP.DEFAULT_ZOOM);
-            
-            L.tileLayer(CONFIG.MAP.TILES, {
-                attribution: CONFIG.MAP.ATTRIBUTION
-            }).addTo(map);
-            
-            appState.update({
-                map,
-                loading: {
-                    map: false,
-                    route: false,
-                    poi: false
-                },
-                initialized: true
-            });
-            
-            console.log('Trail Navigator initialized successfully');
-            
-        } catch (error) {
-            console.error('Failed to initialize Trail Navigator:', error);
-            this.handleError(error);
-        }
-    }
-    
-    handleStateChange(state) {
-        // Update loading indicator
-        this.updateLoadingState(state.loading);
-        
-        // Update UI based on state changes
-        if (state.initialized) {
+            // Initialize map first
+            await initializeMap();
+
+            // Load POIs and route data in parallel
+            await Promise.all([
+                initializePOIs(),
+                initializeRoute()
+            ]);
+
+            this.initialized = true;
             document.body.classList.add('app-ready');
+
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+            // Handle initialization error
         }
     }
-    
-    updateLoadingState(loading) {
-        const isLoading = Object.values(loading).some(state => state);
-        document.body.classList.toggle('loading', isLoading);
+
+    handleStateChange(state) {
+        // Handle state changes
+        if (state.error) {
+            this.handleError(state.error);
+        }
     }
-    
+
+    handleResize() {
+        if (mapManager.map) {
+            mapManager.map.invalidateSize();
+        }
+    }
+
     handleError(error) {
-        console.error('Application error:', error);
-        // TODO: Add user-friendly error handling
+        console.error('App error:', error);
+        // Implement error handling UI
     }
 }
 
-// Initialize app when DOM is ready
+// Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const app = new TrailNavigator();
     app.initialize();

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trail Navigator v2</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- App CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="map"></div>
+        
+        <nav id="tab-bar">
+            <button id="tab-map" class="active">
+                <i class="fas fa-map"></i>
+            </button>
+            <button id="tab-nav">
+                <i class="fas fa-compass"></i>
+            </button>
+            <button id="tab-list">
+                <i class="fas fa-list"></i>
+            </button>
+        </nav>
+        
+        <div id="overlays">
+            <div id="nav-overlay" class="overlay">
+                <!-- Navigation view content -->
+            </div>
+            
+            <div id="list-overlay" class="overlay">
+                <!-- List view content -->
+            </div>
+            
+            <div id="detail-overlay" class="overlay">
+                <!-- Detail view content -->
+            </div>
+            
+            <div id="entry-overlay" class="overlay">
+                <!-- Entry point selection content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <!-- App JS -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

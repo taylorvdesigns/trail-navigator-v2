@@ -22,6 +22,29 @@ export const CONFIG = {
         PER_PAGE: 100
     },
     
+    TEST_LOCATIONS: [
+        { 
+            name: "Between Swamp Rabbit Cafe and Unity", 
+            coords: [34.863381, -82.421034],
+            description: "Test point along trail section" 
+        },
+        { 
+            name: "Between Downtown and Unity", 
+            coords: [34.848406, -82.404906],
+            description: "Mid-way point on trail" 
+        },
+        { 
+            name: "Furman University", 
+            coords: [34.926555, -82.443180],
+            description: "University section of trail" 
+        },
+        { 
+            name: "Greenville Tech", 
+            coords: [34.826607, -82.378538],
+            description: "Tech campus trail entrance" 
+        }
+    ],
+    
     TRAVEL_MODES: {
         walk: { speed: 3.1, icon: 'fa-solid fa-walking' },
         run: { speed: 5.0, icon: 'fa-solid fa-running' },

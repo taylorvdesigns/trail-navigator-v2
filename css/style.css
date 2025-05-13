@@ -293,6 +293,65 @@ body.app-ready .loading {
     color: #666;
 }
 
+/* POI list styles */
+.poi-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.poi-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.poi-icons {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+.poi-details {
+    flex: 1;
+}
+
+.poi-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.poi-meta {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.no-pois {
+    color: #666;
+    text-align: center;
+    padding: 16px;
+}
+
+/* Direction indicator styles */
+.direction-indicator {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.direction-indicator i {
+    transition: transform 0.3s ease;
+}
+
+
 .show-more-btn {
     width: 100%;
     padding: 0.75rem;
@@ -365,3 +424,122 @@ body.app-ready .loading {
     font-size: 12px;
 }
 
+.location-picker-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.location-picker-modal .modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.location-picker-modal .modal-header {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.location-picker-modal .modal-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.location-picker-modal .close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 8px;
+    color: #666;
+}
+
+.location-picker-modal .close-modal:hover {
+    color: #333;
+}
+
+.location-picker-modal .modal-body {
+    padding: 16px;
+}
+
+.location-picker-modal .location-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.location-picker-modal .location-option {
+    text-align: left;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.location-picker-modal .location-option:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.location-picker-modal .location-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.location-picker-modal .location-description {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.location-picker-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.location-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pick-location-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.pick-location-btn:hover {
+    background: #0056b3;
+}

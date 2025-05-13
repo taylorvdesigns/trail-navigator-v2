@@ -5,8 +5,14 @@ class MapManager {
     constructor() {
         this.map = null;
         this.userMarker = null;
-        this.routeLine = null;
-        this.markers = new Map();
+        this.watchId = null;
+        this.accuracy = null;
+        // Subscribe to state changes right in the constructor
+        appState.subscribe((state) => {
+            if (state.mapMode === 'picking-location') {
+                this.handleLocationPicking();
+            }
+        });
     }
 
     _getInitialViewFromURL() {
@@ -122,6 +128,34 @@ class MapManager {
         });
         resizeObserver.observe(document.getElementById('map'));
     }
+	
+	handleLocationPicking() {
+	        if (this.map) {
+	            // Change cursor to crosshair
+	            this.map.getContainer().style.cursor = 'crosshair';
+
+	            // Add click handler
+	            const clickHandler = (e) => {
+	                // Get clicked point
+	                const location = {
+	                    lat: e.latlng.lat,
+	                    lng: e.latlng.lng
+	                };
+
+	                // Remove click handler
+	                this.map.off('click', clickHandler);
+	                this.map.getContainer().style.cursor = '';
+
+	                // Dispatch event with picked location
+	                const event = new CustomEvent('location-picked', {
+	                    detail: { location }
+	                });
+	                document.dispatchEvent(event);
+	            };
+
+	            this.map.on('click', clickHandler);
+	        }
+	    }
 
     _handleMapMove() {
         // Store map center in URL

@@ -16,10 +16,25 @@
 </head>
 <body>
     <div id="app">
-        <div id="map"></div>
+        <div id="map" class="view"></div>
         <div id="nav-view" class="view hidden">
+			<div class="location-panel">
+			  <div class="location-panel-icon">
+			    <i class="fas fa-map-marker-alt"></i>
+			  </div>
+			  <div class="location-panel-content">
+			    <div class="location-panel-title">
+			      Please select a trail entry point to begin navigation.
+			    </div>
+			    <button class="location-panel-btn" type="button">
+			      <i class="fas fa-location-arrow"></i>
+			      Select Entry Point
+			    </button>
+			  </div>
+			</div>
             <!-- Nav view will be populated by NavView class -->
         </div>
+		<div id="list-view" class="view hidden"></div>
         <div class="loading">
             <!-- Add your loading indicator here if needed -->
         </div>

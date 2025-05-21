@@ -18,21 +18,39 @@ const CATEGORIES = [
 
 export class NavView {
 	constructor() {
-	        this.container = null;
-	        this.currentLocation = null;
-	        this.currentDirection = 0;
-	        this.selectedLocomotion = 'WALKING';
-	        this.selectedCategories = new Set();
-	        this.modal = null;
-	        this.viewDistance = 2;
-	        this.distanceIncrement = 2;
-	        this.maxDistance = 15;
-	        this.visiblePOIsAhead = new Set();
-	        this.visiblePOIsBehind = new Set();
-	        this.loadPreferences();
-	        appState.subscribe(this.handleStateChange.bind(this));
-			
-	    }
+	    this.container = null;
+	    this.currentLocation = null;
+	    this.currentDirection = 0;
+	    this.selectedLocomotion = 'WALKING';
+	    this.selectedCategories = new Set();
+	    console.log("1. NavView constructor - selectedCategories initialized:", this.selectedCategories);
+    
+	    this.modal = null;
+	    this.viewDistance = 2;
+	    this.distanceIncrement = 2;
+	    this.maxDistance = 15;
+	    this.visiblePOIsAhead = new Set();
+	    this.visiblePOIsBehind = new Set();
+    
+	    console.log("2. Before loadPreferences - selectedCategories:", this.selectedCategories);
+	    this.loadPreferences();
+	    console.log("3. After loadPreferences - selectedCategories:", this.selectedCategories);
+    
+	    appState.subscribe(this.handleStateChange.bind(this));
+	    console.log("4. After state subscription - selectedCategories:", this.selectedCategories);
+    
+	    this.visiblePOIsAhead = new Set();
+	    this.visiblePOIsBehind = new Set();
+	    this.poiGroups = {
+	        ahead: new Map(),
+	        behind: new Map()
+	    };
+	    this.ungroupedPOIs = {
+	        ahead: new Set(),
+	        behind: new Set()
+	    };
+	    console.log("5. End of constructor - selectedCategories:", this.selectedCategories);
+	}
 
 		initialize() {
 		        console.log('Initializing NavView');
@@ -63,106 +81,141 @@ export class NavView {
 		    }
 
 	// Update the updatePOILists method
-	updatePOILists() {
-	// Add this at the beginning of the method
-	    const state = appState.getState();
-	    if (state.pois && state.pois.length > 0) {
-	        console.log("Sample POI structure:", state.pois[0]);
-	    }
-
-	    const allPOIs = state.pois || (poiManager.poiData || []);
-	    const userLocation = this.currentLocation;
-    
-	    if (!allPOIs || allPOIs.length === 0) {
-	        console.log('No POIs available');
-	        return;
-	    }
-
-	    // Clear existing lists
-	    this.visiblePOIsAhead.clear();
-	    this.visiblePOIsBehind.clear();
-
-	    // Log first POI structure
-	    if (allPOIs.length > 0) {
-	        console.log('Sample POI structure:', allPOIs[0]);
-	    }
-
-	    allPOIs.forEach(poi => {
-	        // Skip if category is filtered out
-	        if (this.selectedCategories.size > 0 && 
-	            !poi.categories?.some(cat => this.selectedCategories.has(cat.slug))) {
-	            return;
-	        }
-
-	        // Get coordinates from the coords array
-	        const poiLocation = {
-	            lat: poi.coords?.[0] || poi.latitude,
-	            lng: poi.coords?.[1] || poi.longitude
-	        };
-
-	        if (!poiLocation.lat || !poiLocation.lng) {
-	            console.warn('POI missing valid coordinates:', poi);
-	            return;
-	        }
-
-	        let poiData = { ...poi };
-
-	        // Only calculate distance-related data if we have user location
-	        if (userLocation) {
-	            const distance = this.calculateDistance(userLocation, poiLocation);
-            
-	            // Skip if beyond max view distance
-	            if (distance > this.maxDistance) {
-	                return;
-	            }
-
-	            const bearing = this.calculateBearing(userLocation, poiLocation);
-	            const relativeAngle = (bearing - this.currentDirection + 360) % 360;
-
-	            poiData = {
-	                ...poiData,
-	                distance,
-	                timeMinutes: this.calculateTravelTime(distance),
-	                bearing,
-	                relativeAngle
-	            };
-
-	            // Classify as ahead (within 180° arc) or behind based on angle
-	            if (relativeAngle <= 90 || relativeAngle >= 270) {
-	                this.visiblePOIsAhead.add(poiData);
-	            } else {
-	                this.visiblePOIsBehind.add(poiData);
-	            }
-	        } else {
-	            // Without location, just put all POIs in the "ahead" list
-	            this.visiblePOIsAhead.add(poiData);
-	        }
-	    });
-
-		console.log('POIs sorted into views:', {
-		        ahead: this.visiblePOIsAhead.size,
-		        behind: this.visiblePOIsBehind.size
-		    });
-
-		    if (this.currentLocation) {
-		        // Sort POIs by distance
-		        this.visiblePOIsAhead = new Set([...this.visiblePOIsAhead].sort((a, b) => {
-		            // Sort in DESCENDING order (furthest first) for ahead list
-		            return b.distance - a.distance;
-		        }));
+			updatePOILists() {
+			    console.log("updatePOILists called. Selected categories:", 
+			        Array.from(this.selectedCategories),
+			        "Size:", this.selectedCategories.size);
         
-		        this.visiblePOIsBehind = new Set([...this.visiblePOIsBehind].sort((a, b) => {
-		            // Sort in ASCENDING order (nearest first) for behind list
-		            return a.distance - b.distance;
-		        }));
-		    } else {
-		        // When no location is set, sort by name
-		        this.visiblePOIsAhead = new Set([...this.visiblePOIsAhead].sort((a, b) => 
-		            a.name.localeCompare(b.name)
-		        ));
-		        this.visiblePOIsBehind = new Set();
-		    }
-		}
+			    // Get the state first
+			    const state = appState.getState();
+			    const allPOIs = state.pois || [];
+			    const userLocation = this.currentLocation;
+
+			    // Clear existing lists
+			    this.visiblePOIsAhead.clear();
+			    this.visiblePOIsBehind.clear();
+			    this.poiGroups.ahead.clear();
+			    this.poiGroups.behind.clear();
+			    this.ungroupedPOIs.ahead.clear();
+			    this.ungroupedPOIs.behind.clear();
+
+			    // Show a sample POI structure for debugging
+			    if (allPOIs.length > 0) {
+			        console.log("Sample POI structure:", allPOIs[0]);
+			    }
+
+			    // Debug log to see all POIs
+			    console.log("Processing POIs count:", allPOIs.length);
+
+			    allPOIs.forEach(poi => {
+			        // Debug logs for each POI
+			        console.log('Processing POI:', poi.name);
+			        console.log('Tags structure:', poi.tags);
+			        console.log('First tag:', poi.tags?.[0]);
+			        console.log('Group tag value:', poi.tags?.[0]?.name);
+
+			        // Get coordinates from the coords array
+			        const poiLocation = {
+			            lat: poi.coords?.[0] || poi.latitude,
+			            lng: poi.coords?.[1] || poi.longitude
+			        };
+
+			        if (!poiLocation.lat || !poiLocation.lng) {
+			            console.log('Skipping POI due to missing coordinates:', poi.name);
+			            return;
+			        }
+
+			        let poiData = { ...poi };
+
+			        // Only calculate distance-related data if we have user location
+			        if (userLocation) {
+			            const distance = this.calculateDistance(userLocation, poiLocation);
+            
+			            // Skip if beyond max view distance
+			            if (distance > this.maxDistance) {
+			                console.log('Skipping POI due to distance:', poi.name, distance);
+			                return;
+			            }
+
+			            const bearing = this.calculateBearing(userLocation, poiLocation);
+			            const relativeAngle = (bearing - this.currentDirection + 360) % 360;
+
+			            poiData = {
+			                ...poiData,
+			                distance,
+			                timeMinutes: this.calculateTravelTime(distance),
+			                bearing,
+			                relativeAngle
+			            };
+
+			            // Determine if POI is ahead or behind
+			            const direction = (relativeAngle <= 90 || relativeAngle >= 270) ? 'ahead' : 'behind';
+
+			            // Check if POI matches current category filter
+			            const matchesFilter = !this.selectedCategories.size || 
+			                poi.categories?.some(cat => this.selectedCategories.has(cat.slug));
+
+			            if (!matchesFilter) {
+			                console.log('Skipping POI due to category filter:', poi.name);
+			                return; // Skip POIs that don't match the filter
+			            }
+
+			            // Get the tag for grouping
+			            const groupTag = poi.tags?.[0]?.name;
+			            console.log('Group tag for POI:', poi.name, groupTag);
+
+			            if (groupTag) {
+			                // Add to appropriate group
+			                if (!this.poiGroups[direction].has(groupTag)) {
+			                    this.poiGroups[direction].set(groupTag, new Set());
+			                }
+			                this.poiGroups[direction].get(groupTag).add(poiData);
+			                console.log(`Added ${poi.name} to ${direction} group: ${groupTag}`);
+			            } else {
+			                // Add to ungrouped POIs
+			                this.ungroupedPOIs[direction].add(poiData);
+			                console.log(`Added ${poi.name} to ${direction} ungrouped`);
+			            }
+
+			            // Also maintain the original sets
+			            if (direction === 'ahead') {
+			                this.visiblePOIsAhead.add(poiData);
+			            } else {
+			                this.visiblePOIsBehind.add(poiData);
+			            }
+			        } else {
+			            // Without location, just put in ahead and ungrouped
+			            this.ungroupedPOIs.ahead.add(poiData);
+			            this.visiblePOIsAhead.add(poiData);
+			            console.log(`Added ${poi.name} to ahead (no user location)`);
+			        }
+			    });
+
+			    // Log the final state of groups and ungrouped
+			    console.log('Final Groups:', {
+			        ahead: Array.from(this.poiGroups.ahead.keys()),
+			        behind: Array.from(this.poiGroups.behind.keys())
+			    });
+			    console.log('Final Ungrouped counts:', {
+			        ahead: this.ungroupedPOIs.ahead.size,
+			        behind: this.ungroupedPOIs.behind.size
+			    });
+
+			    // Sort POIs within each group and ungrouped sets
+			    for (const direction of ['ahead', 'behind']) {
+			        // Sort groups
+			        for (const [tag, pois] of this.poiGroups[direction]) {
+			            this.poiGroups[direction].set(tag, new Set([...pois].sort((a, b) => {
+			                return a.distance - b.distance;
+			            })));
+			        }
+        
+			        // Sort ungrouped
+			        this.ungroupedPOIs[direction] = new Set([...this.ungroupedPOIs[direction]].sort((a, b) => {
+			            return a.distance - b.distance;
+			        }));
+			    }
+			}
 
     calculateDistance(point1, point2) {
         // Haversine formula for distance calculation
@@ -198,8 +251,24 @@ export class NavView {
         return Math.round((distance / speed) * 60); // Convert to minutes
     }
 
-	renderPOIList(pois, title) {
-	    if (!pois || pois.size === 0) {
+	renderPOIList(direction, title) {
+	    console.log(`Rendering POI list for ${direction}:`, typeof direction);
+    
+	    // Ensure direction is a string
+	    if (!(direction === 'ahead' || direction === 'behind')) {
+	        console.error('Invalid direction:', direction);
+	        return '';
+	    }
+
+	    const groups = this.poiGroups[direction];
+	    const ungrouped = this.ungroupedPOIs[direction];
+    
+	    console.log('Groups:', groups);
+	    console.log('Ungrouped:', ungrouped);
+	    console.log('Selected Categories:', this.selectedCategories);
+    
+	    if ((!groups || groups.size === 0) && (!ungrouped || ungrouped.size === 0)) {
+	        console.log(`No POIs found for ${direction}`);
 	        return `
 	            <div class="pois-section">
 	                <h3>${title}</h3>
@@ -208,7 +277,51 @@ export class NavView {
 	        `;
 	    }
 
-	    const poiItems = [...pois].map(poi => `
+	    // If filters are active, show all POIs without groups
+	    if (this.selectedCategories.size > 0) {
+	        console.log('Filters active, showing all POIs without groups');
+	        const allPOIs = direction === 'ahead' ? 
+	            this.visiblePOIsAhead : this.visiblePOIsBehind;
+        
+	        console.log('All POIs for direction:', allPOIs);    
+	        return this.renderPOIItems(allPOIs, title);
+	    }
+
+	    // Render groups and ungrouped POIs
+	    const groupsHtml = groups ? [...groups.entries()].map(([tag, pois]) => `
+	        <div class="poi-group" data-group-tag="${tag}">
+	            <div class="group-header">
+	                <span class="group-name">${tag}</span>
+	                <span class="poi-count">${pois.size}</span>
+	                <i class="fas fa-chevron-right"></i>
+	            </div>
+	        </div>
+	    `).join('') : '';
+
+	    // Render ungrouped POIs
+	    const ungroupedHtml = ungrouped && ungrouped.size > 0 ? 
+	        [...ungrouped].map(poi => this.renderPOIItem(poi)).join('') : '';
+
+	    return `
+	        <div class="pois-section">
+	            <h3>${title}</h3>
+	            <div class="poi-list">
+	                ${groupsHtml}
+	                ${ungroupedHtml}
+	            </div>
+	        </div>
+	    `;
+	}
+
+    getCategoryIcon(category) {
+        const cat = CATEGORIES.find(c => c.slug === category);
+        return cat ? cat.iconClass : 'fas fa-map-pin';
+    }
+	
+	// Helper method to render individual POI items
+	renderPOIItem(poi) {
+	    console.log('Rendering individual POI:', poi);
+	    return `
 	        <div class="poi-item" data-poi-id="${poi.id}">
 	            <div class="poi-icons">
 	                ${poi.categories.map(cat => 
@@ -224,88 +337,90 @@ export class NavView {
 	                ` : ''}
 	            </div>
 	        </div>
-	    `).join('');
+	    `;
+	}
 
+	// Helper method to render a list of POIs
+	renderPOIItems(pois, title) {
+	    console.log('Rendering POI list:', { title, poisCount: pois.size });
 	    return `
 	        <div class="pois-section">
 	            <h3>${title}</h3>
 	            <div class="poi-list">
-	                ${poiItems}
+	                ${[...pois].map(poi => this.renderPOIItem(poi)).join('')}
 	            </div>
 	        </div>
 	    `;
 	}
 
-    getCategoryIcon(category) {
-        const cat = CATEGORIES.find(c => c.slug === category);
-        return cat ? cat.iconClass : 'fas fa-map-pin';
-    }
-
 	render() {
+	    console.log('render called - current selectedCategories:', Array.from(this.selectedCategories));
 	    if (!this.container) return;
 
 	    this.container.innerHTML = `
 	        <div class="nav-view-content">
-	            <div class="location-picker-section">
-	                <div class="location-notice">
+	            <div class="location-panel">
+	                <div class="location-panel-icon">
 	                    <i class="fas fa-map-marker-alt"></i>
-	                    ${!this.currentLocation ? `
-	                        <p>Please select a trail entry point to begin navigation.</p>
-	                    ` : `
-	                        <p>Currently at: ${this.getCurrentLocationName()}</p>
-	                    `}
 	                </div>
-	                <button class="pick-location-btn">
-	                    <i class="fas fa-map-pin"></i>
-	                    ${!this.currentLocation ? 'Select Entry Point' : 'Change Location'}
-	                </button>
+	                <div class="location-panel-content">
+	                    <div class="location-panel-title">
+	                        ${!this.currentLocation 
+	                            ? 'Please select a trail entry point to begin navigation.'
+	                            : `Currently at: ${this.getCurrentLocationName()}`
+	                        }
+	                    </div>
+	                    <button class="location-panel-btn">
+	                        <i class="fas fa-location-arrow"></i>
+	                        ${!this.currentLocation ? 'Select Entry Point' : 'Change Location'}
+	                    </button>
+	                </div>
 	            </div>
-	           
 
 	            <div class="locomotion-section">
-                    <div class="locomotion-toggles">
-                        ${Object.keys(LOCOMOTION_SPEEDS).map(mode => `
-                            <button class="${this.selectedLocomotion === mode ? 'active' : ''}" 
-                                    data-mode="${mode}">
-                                <i class="fas fa-person-${mode.toLowerCase()}"></i>
-                                <span>${mode.charAt(0) + mode.slice(1).toLowerCase()}</span>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
+	                <div class="locomotion-toggles">
+	                    ${Object.keys(LOCOMOTION_SPEEDS).map(mode => `
+	                        <button class="${this.selectedLocomotion === mode ? 'active' : ''}" 
+	                                data-mode="${mode}">
+	                            <i class="fas fa-person-${mode.toLowerCase()}"></i>
+	                            <span>${mode.charAt(0) + mode.slice(1).toLowerCase()}</span>
+	                        </button>
+	                    `).join('')}
+	                </div>
+	            </div>
 
-                ${this.renderPOIList(this.visiblePOIsAhead, 'Ahead')}
+	            ${this.renderPOIList('ahead', 'Ahead')}
 
-                <div class="direction-filters-section">
-                    <div class="direction-indicator">
-                        <i class="fas fa-arrow-up" style="transform: rotate(${this.currentDirection}deg)"></i>
-                    </div>
-                    <div class="category-filters">
-                        ${CATEGORIES.map(cat => `
-                            <button class="${this.selectedCategories.has(cat.slug) ? 'active' : ''}" 
-                                    data-category="${cat.slug}" 
-                                    title="${cat.title}">
-                                <i class="${cat.iconClass}"></i>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
+	            <div class="direction-filters-section">
+	                <div class="direction-indicator">
+	                    <i class="fas fa-arrow-up" style="transform: rotate(${this.currentDirection}deg)"></i>
+	                </div>
+	                <div class="category-filters">
+	                    ${CATEGORIES.map(cat => `
+	                        <button class="${this.selectedCategories.has(cat.slug) ? 'active' : ''}" 
+	                                data-category="${cat.slug}" 
+	                                title="${cat.title}">
+	                            <i class="${cat.iconClass}"></i>
+	                        </button>
+	                    `).join('')}
+	                </div>
+	            </div>
 
-                ${this.renderPOIList(this.visiblePOIsBehind, 'Behind')}
+	            ${this.renderPOIList('behind', 'Behind')}
 
-                ${this.visiblePOIsAhead.size + this.visiblePOIsBehind.size > 0 ? `
-                    <div class="show-more-section">
-                        <button class="show-more-btn" ${this.viewDistance >= this.maxDistance ? 'disabled' : ''}>
-                            Show More
-                        </button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
+	            ${(this.visiblePOIsAhead.size + this.visiblePOIsBehind.size > 0) ? `
+	                <div class="show-more-section">
+	                    <button class="show-more-btn" ${this.viewDistance >= this.maxDistance ? 'disabled' : ''}>
+	                        Show More
+	                    </button>
+	                </div>
+	            ` : ''}
+	        </div>
+	    `;
 
-        // Re-attach event listeners after rendering
-		this.attachEventListeners(true); // Always attach location picker listener now
-		}
+	    // Re-attach event listeners after rendering
+	    this.attachEventListeners(true);
+	}
 
 		attachEventListeners(needsLocationPicker) {
 		    if (!this.container) return;
@@ -538,18 +653,23 @@ export class NavView {
         this.render();
     }
 
-    loadPreferences() {
-        try {
-            const saved = localStorage.getItem('navViewPreferences');
-            if (saved) {
-                const prefs = JSON.parse(saved);
-                this.selectedLocomotion = prefs.locomotion || 'WALKING';
-                this.selectedCategories = new Set(prefs.categories || []);
-            }
-        } catch (error) {
-            console.warn('Failed to load nav preferences:', error);
-        }
-    }
+	loadPreferences() {
+	    console.log("A. Start of loadPreferences - selectedCategories:", this.selectedCategories);
+	    try {
+	        const saved = localStorage.getItem('navViewPreferences');
+	        console.log("B. Found in localStorage:", saved);
+	        if (saved) {
+	            const prefs = JSON.parse(saved);
+	            console.log("C. Parsed preferences:", prefs);
+	            this.selectedLocomotion = prefs.locomotion || 'WALKING';
+	            this.selectedCategories = new Set(prefs.categories || []);
+	            console.log("D. After setting preferences - selectedCategories:", this.selectedCategories);
+	        }
+	    } catch (error) {
+	        console.warn('Failed to load nav preferences:', error);
+	    }
+	    console.log("E. End of loadPreferences - selectedCategories:", this.selectedCategories);
+	}
 
     savePreferences() {
         try {

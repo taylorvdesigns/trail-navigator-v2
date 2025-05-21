@@ -4,12 +4,14 @@ import { mapManager, initializeMap } from './map.js';
 import { initializePOIs } from './data/poiManager.js';
 import { initializeRoute } from './data/routeData.js';
 import { NavView } from './views/navView.js';
+import { initializeListView, listView } from './views/ListView.js';
 
 class TrailNavigator {
     constructor() {
         this.initialized = false;
         this.navView = null;
-        this.currentView = 'map'; // Default view
+        this.currentView = 'map';
+		this.listView = listView;
         
         // Initialize tab switching
         this.initializeTabBar();
@@ -33,51 +35,76 @@ class TrailNavigator {
         }
     }
 
-    switchView(viewName) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewName);
-        });
+	switchView(viewName) {
+	    console.log('Switching to view:', viewName); // Debug log
 
-        // Hide all views
-        document.getElementById('map').classList.toggle('hidden', viewName !== 'map');
-        document.getElementById('nav-view').classList.toggle('hidden', viewName !== 'nav');
-        // Add list view when implemented
-        
-        // Update current view
-        this.currentView = viewName;
-        
-        // Update state
-        appState.update({ currentView: viewName });
-    }
+	    // Update tab buttons
+	    document.querySelectorAll('.tab-button').forEach(btn => {
+	        btn.classList.toggle('active', btn.dataset.view === viewName);
+	    });
 
-    async initialize() {
-        try {
-            // Initialize map first
-            await initializeMap();
+	    // Hide/show views
+	    const mapView = document.getElementById('map');
+	    const navView = document.getElementById('nav-view');
+	    const listView = document.getElementById('list-view');
 
-            // Load POIs and route data in parallel
-            await Promise.all([
-                initializePOIs(),
-                initializeRoute()
-            ]);
+	    // Add hidden class to all views first
+	    mapView.classList.add('hidden');
+	    navView.classList.add('hidden');
+	    listView.classList.add('hidden');
 
-            // Initialize views
-            this.initializeViews();
+	    // Remove hidden class from the selected view
+	    switch(viewName) {
+	        case 'map':
+	            mapView.classList.remove('hidden');
+	            break;
+	        case 'nav':
+	            navView.classList.remove('hidden');
+	            break;
+	        case 'list':
+	            listView.classList.remove('hidden');
+	            // Force a re-render of the list view
+	            if (this.listView) {
+	                this.listView.render();
+	            }
+	            break;
+	    }
+    
+	    // Update current view
+	    this.currentView = viewName;
+    
+	    // Update state
+	    appState.update({ currentView: viewName });
+	}
 
-            this.initialized = true;
-            document.body.classList.add('app-ready');
+	async initialize() {
+	    try {
+	        // Initialize map first
+	        await initializeMap();
 
-        } catch (error) {
-            console.error('Failed to initialize app:', error);
-        }
-    }
+	        // Load POIs and route data in parallel
+	        await Promise.all([
+	            initializePOIs(),
+	            initializeRoute()
+	        ]);
 
-    initializeViews() {
-        // Initialize NavView
-        this.navView = new NavView();
-        this.navView.initialize();
-    }
+	        // Initialize views
+	        await this.initializeViews(); // Add await here
+
+	        this.initialized = true;
+	        document.body.classList.add('app-ready');
+
+	    } catch (error) {
+	        console.error('Failed to initialize app:', error);
+	    }
+	}
+
+	async initializeViews() {
+	    // Initialize NavView
+	    this.navView = new NavView();
+	    this.navView.initialize();
+	    await initializeListView();
+	}
 
     handleStateChange(state) {
         if (state.currentView && state.currentView !== this.currentView) {

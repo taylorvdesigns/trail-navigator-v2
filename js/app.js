@@ -124,6 +124,43 @@ class TrailNavigator {
     }
 }
 
+// Locomotion mode change
+window.setLocomotionMode = function(mode) {
+    if (state.locomotionMode !== mode) {
+        state.locomotionMode = mode;
+        // recalculate times, rerender Nav View
+        window.renderNavView && renderNavView();
+    }
+}
+
+// Category toggle (multi-select)
+window.toggleCategory = function(slug) {
+    const idx = state.selectedCategories.indexOf(slug);
+    if (idx === -1) {
+        state.selectedCategories.push(slug);
+    } else {
+        state.selectedCategories.splice(idx, 1);
+    }
+    window.renderNavView && renderNavView();
+}
+
+// Dev-only heading override
+window.setHeadingOverride = function(heading) {
+    state.headingOverride = heading;
+    // Update nav logic as needed
+    window.renderNavView && renderNavView();
+}
+
+// Open group in List View
+window.openGroupListView = function(groupId) {
+    // Implement your view-switching logic here 
+    // (e.g., update app state, show List View for this group)
+    state.activeView = 'list';
+    state.activeGroupId = groupId;
+    // ...call your List View render
+    window.renderListView && renderListView(groupId);
+}
+
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const app = new TrailNavigator();

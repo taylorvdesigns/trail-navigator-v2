@@ -143,6 +143,11 @@ class POIManager {
     }
 }
 
+export function getFilteredPOIs(poiList, selectedCategories) {
+    if (!selectedCategories || selectedCategories.length === 0) return poiList;
+    return poiList.filter(poi => selectedCategories.includes(poi.category));
+}
+
 // Create and export a single instance
 export const poiManager = new POIManager();
 

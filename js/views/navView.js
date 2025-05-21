@@ -1,5 +1,7 @@
-import { appState } from '../data/state.js';
-import { poiManager } from '../data/poiManager.js';
+import { SPUR_COLORS, getSpurColor } from '../data/spurColors.js';
+import { state } from '../data/state.js';
+import { getPOIsAheadBehind, getSpurFromLocation } from '../data/routeData.js';
+import { getFilteredPOIs } from '../data/poiManager.js';
 import { CONFIG } from '../config.js';
 
 const LOCOMOTION_SPEEDS = {
@@ -217,6 +219,7 @@ export class NavView {
 			    }
 			}
 
+
     calculateDistance(point1, point2) {
         // Haversine formula for distance calculation
         const R = 3959; // Earth's radius in miles
@@ -339,6 +342,111 @@ export class NavView {
 	        </div>
 	    `;
 	}
+	
+	// Helper: get visible spurs/groups from current user position
+	function getCurrentSpur() {
+	    // This function should return the current spur/trail based on user position
+	    // For now, we assume state.currentSpur is updated elsewhere
+	    return state.currentSpur || "main";
+	}
+
+	// Helper: handle dev-only heading override (visible if ?dev=1)
+	function showDevOverride() {
+	    return window.location.search.includes('dev=1');
+	}
+	
+	export function renderNavView() {
+	    const navViewRoot = document.getElementById('nav-view');
+	    if (!navViewRoot) return;
+
+	    // 1. Determine current spur/trail color
+	    const currentSpur = getCurrentSpur();
+	    const lineColor = getSpurColor(currentSpur);
+
+	    // 2. Get filtered POIs and groups for ahead/behind lists
+	    const { ahead, behind } = getPOIsAheadBehind(state.userLocation, state.userHeading, state.selectedRoute);
+
+	    // Filter by selected categories (multi-select)
+	    const filteredAhead = getFilteredPOIs(ahead, state.selectedCategories);
+	    const filteredBehind = getFilteredPOIs(behind, state.selectedCategories);
+
+	    // 3. Build the sticky center section (locomotion, filter, heading context)
+	    let stickyCenter = `
+	      <div class="nav-center-sticky">
+	        <div class="nav-heading-context">
+	          <div>HEADING TOWARD <b>${state.headingToward}</b></div>
+	          <div>HEADING AWAY FROM <b>${state.headingAwayFrom}</b></div>
+	        </div>
+	        <div class="nav-mode-selector">
+	          ${['walk', 'bike'].map(mode => `
+	            <i class="fas fa-${mode === 'walk' ? 'person-walking' : 'bicycle'} ${state.locomotionMode === mode ? 'active' : ''}" 
+	               onclick="window.setLocomotionMode && setLocomotionMode('${mode}')"></i>
+	          `).join('')}
+	        </div>
+	        <div class="nav-category-filter">
+	          ${state.categoryList.map(cat => `
+	            <i class="${cat.iconClass} ${state.selectedCategories.includes(cat.slug) ? 'selected' : ''}"
+	               title="${cat.title}" 
+	               onclick="window.toggleCategory && toggleCategory('${cat.slug}')"></i>
+	          `).join('')}
+	        </div>
+	        ${showDevOverride() ? `
+	          <div class="nav-heading-override">
+	            <label>DEV: Heading Override
+	              <select onchange="window.setHeadingOverride && setHeadingOverride(this.value)">
+	                <option value="">Auto</option>
+	                <option value="forward">Forward</option>
+	                <option value="backward">Backward</option>
+	              </select>
+	            </label>
+	          </div>
+	        ` : ''}
+	      </div>
+	    `;
+
+	    // 4. Build POI/group rows (with group preview)
+	    function buildPOIRows(poiList) {
+	        return poiList.map(item => {
+	            if (item.isGroup) {
+	                // Show comma-separated preview of first 2 POIs in group
+	                const preview = (item.pois.slice(0,2).map(p => p.title).join(', '));
+	                return `
+	                  <li class="nav-row nav-group-row" onclick="window.openGroupListView && openGroupListView('${item.groupId}')">
+	                    <span class="nav-group-name">${item.groupName}</span>
+	                    <span class="nav-group-preview">${preview}</span>
+	                    <span class="nav-group-arrow">&#9662;</span>
+	                  </li>
+	                `;
+	            } else {
+	                // Individual POI
+	                return `
+	                  <li class="nav-row nav-poi-row">
+	                    <span class="nav-poi-name">${item.title}</span>
+	                    <span class="nav-poi-dist">${item.distDisplay}</span>
+	                    <span class="nav-poi-time">${item.timeDisplay}</span>
+	                  </li>
+	                `;
+	            }
+	        }).join('');
+	    }
+
+	    // 5. Main render
+	    navViewRoot.innerHTML = `
+	      <div class="nav-vertical-line" style="background-color: ${lineColor};"></div>
+	      <section class="nav-section nav-section-ahead">
+	        <div class="nav-section-header">DESTINATIONS AHEAD</div>
+	        <ul class="nav-list">${buildPOIRows(filteredAhead)}</ul>
+	      </section>
+	      ${stickyCenter}
+	      <section class="nav-section nav-section-behind">
+	        <div class="nav-section-header">DESTINATIONS BEHIND</div>
+	        <ul class="nav-list">${buildPOIRows(filteredBehind)}</ul>
+	      </section>
+	    `;
+	}
+
+	// Attach to window for dev
+	window.renderNavView = renderNavView;
 
 	// Helper method to render a list of POIs
 	renderPOIItems(pois, title) {
